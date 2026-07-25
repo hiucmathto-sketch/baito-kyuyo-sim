@@ -62,6 +62,12 @@
   .calCap .capYear{color:var(--sub);font-size:.85rem}
   .calCap .delMonth{margin-left:auto;border:0;background:#fff0f0;color:var(--accent);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.76rem;font-weight:600}
 
+  .bonusRow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:#fff8e6;border:2px solid #ffe08a;border-radius:12px;padding:12px 14px;margin:6px 0 12px}
+  .bonusRow label{font-weight:800;font-size:.9rem;color:#b8860b}
+  .bonusRow .sub{color:var(--sub);font-weight:400;font-size:.72rem}
+  .bonusRow .mbonus{width:150px;margin-left:auto;font-weight:800;color:#b8860b}
+  .payGrid .bonus b{color:#ffe08a}
+
   .calWrap{overflow-x:auto}
   .calTbl{border-collapse:collapse;width:100%;min-width:500px;font-size:.86rem}
   .calTbl th{background:#fafbfe;color:var(--sub);font-size:.72rem;font-weight:700;padding:7px 6px;border-bottom:1px solid var(--line)}
@@ -239,7 +245,7 @@
     return h;
   }
 
-  function addMonth(page,year,month,days){
+  function addMonth(page,year,month,days,bonus){
     const ym=`${year}-${String(month).padStart(2,"0")}`;
     if(page.querySelector(`.monthBlock[data-ym="${ym}"]`)) return null;
     const block=document.createElement("div");
@@ -248,6 +254,10 @@
       <div class="calCap">
         <span class="capTitle">${month}月</span><span class="capYear">${year}年</span>
         <button class="delMonth" type="button">この月を削除</button>
+      </div>
+      <div class="bonusRow">
+        <label>🎁 この月のボーナス <span class="sub">円（出る月だけ入力）</span></label>
+        <input type="number" class="mbonus" min="0" step="100" value="${(+bonus||0)}">
       </div>
       <div class="calWrap">
         <table class="calTbl">
@@ -261,6 +271,7 @@
           <div class="cell"><span>実働時間</span><b class="m-hours">0分</b></div>
           <div class="cell"><span>基本給</span><b class="m-base">¥0</b></div>
           <div class="cell"><span>インセンティブ</span><b class="m-inc">¥0</b></div>
+          <div class="cell bonus"><span>ボーナス</span><b class="m-bonus">¥0</b></div>
           <div class="cell"><span>出勤日数</span><b class="m-days">0日</b></div>
           <div class="cell pen"><span>休み</span><b class="m-pen">0日</b></div>
           <div class="cell"><span>支給総額</span><b class="m-gross">¥0</b></div>
@@ -328,11 +339,13 @@
           else if(pen) penDays++;
           min+=w;
         });
+        const bonus=+block.querySelector(".mbonus").value||0;
         const hours=min/60, base=Math.round(wage*hours), inc=Math.round(hours*pt*100);
-        const gross=base+inc, tax=withholding(gross,mode,dep), net=gross-tax;
+        const gross=base+inc+bonus, tax=withholding(gross,mode,dep), net=gross-tax;
         block.querySelector(".m-hours").textContent=hmText(min);
         block.querySelector(".m-base").textContent=yen(base);
         block.querySelector(".m-inc").textContent=yen(inc);
+        block.querySelector(".m-bonus").textContent=yen(bonus);
         block.querySelector(".m-days").textContent=workDays+"日";
         block.querySelector(".m-pen").textContent=penDays+"日";
         block.querySelector(".m-gross").textContent=yen(gross);
@@ -367,7 +380,7 @@
           const p=tr.querySelector(".dpen").checked;
           if(i||o||p) days[tr.dataset.day]={i,o,b,p:p?1:0};
         });
-        months.push({ym:block.dataset.ym,days});
+        months.push({ym:block.dataset.ym,days,bonus:(+block.querySelector(".mbonus").value||0)});
       });
       staff.push({name:page.querySelector(".nameInp").value,wage:page.querySelector(".wage").value,
         mode:page.dataset.mode,dep:page.querySelector(".dep").value,pt:page.querySelector(".pt").value,
@@ -450,7 +463,7 @@
   function buildDemo(){
     const a=staffPage("スタッフA",1300,"kou",0,3);
     addMonth(a,2026,7,{1:{i:"10:00",o:"17:00",b:"45"},15:{i:"10:00",o:"16:00",b:"90"}});
-    addMonth(a,2026,8); addMonth(a,2026,9);
+    [8,9,10,11,12].forEach(m=>addMonth(a,2026,m));
     a.dataset.activeYm="2026-07"; renderMonthTabs(a);
     return a.dataset.id;
   }
@@ -462,11 +475,21 @@
     saved.staff.forEach(s=>{
       const p=staffPage(s.name||"",(+s.wage||1300),(s.mode||"kou"),(+s.dep||0),(+s.pt||0));
       if(!firstId) firstId=p.dataset.id;
-      (s.months||[]).forEach(mo=>{ const [y,m]=mo.ym.split("-"); addMonth(p,+y,+m,mo.days||{}); });
+      (s.months||[]).forEach(mo=>{ const [y,m]=mo.ym.split("-"); addMonth(p,+y,+m,mo.days||{},+mo.bonus||0); });
       p.dataset.activeYm=s.activeYm||((s.months&&s.months[0])?s.months[0].ym:"");
       renderMonthTabs(p);
     });
   } else { firstId=buildDemo(); }
+  // 10〜12月を既存データにも一度だけ追加
+  (function(){
+    const ENSURE_KEY="baitoKyuyoSim.ensuredQ4_2026";
+    try{ if(localStorage.getItem(ENSURE_KEY)) return; }catch(e){ return; }
+    const y=+yearInput.value||2026;
+    pages.querySelectorAll('.page[data-id^="s"]').forEach(pg=>{
+      [10,11,12].forEach(m=>addMonth(pg,y,m)); renderMonthTabs(pg);
+    });
+    try{ localStorage.setItem(ENSURE_KEY,"1"); }catch(e){}
+  })();
   restoring=false;
   renderTabs();
   showPage((saved&&saved.active&&pages.querySelector(`.page[data-id="${saved.active}"]`))?saved.active:firstId);
