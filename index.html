@@ -113,6 +113,10 @@
   </div>
 
   <button class="addStaff" id="addStaff">＋ スタッフ（ページ）を追加</button>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap">
+    <span style="color:var(--good);font-size:.76rem">💾 入力内容はこの端末のブラウザに自動保存され、次回も続きから使えます。</span>
+    <button id="resetBtn" style="border:1px solid var(--line);background:#fff;color:var(--sub);padding:7px 12px;border-radius:9px;font-size:.76rem;cursor:pointer">保存データを消去</button>
+  </div>
 
   <footer>
     ※ 源泉所得税は令和6年分「電子計算機等を使用する特例」に基づく<b>概算</b>（社会保険料控除は未考慮）。<br>
@@ -313,7 +317,37 @@
     gb.innerHTML = gk.length
       ? gk.map(k=>{const g=grand[k];return payRow(g.min,g.base,g.inc,g.gross,g.tax,g.net,fmtMonth(k));}).join("")
       : `<tr><td class="empty" colspan="7">データがありません</td></tr>`;
+    save();
   }
+
+  // ---- 自動保存（localStorage） ----
+  const STORE_KEY = "baitoKyuyoSim.v1";
+  function serialize(){
+    const staff=[];
+    pages.querySelectorAll('.page[data-id^="s"]').forEach(page=>{
+      const shifts=[];
+      page.querySelectorAll('.shifts tr').forEach(tr=>{
+        shifts.push({
+          date: tr.querySelector('.dateInp').value,
+          start: tr.querySelector('.s').value,
+          end: tr.querySelector('.e').value,
+          brk: tr.querySelector('.b').value
+        });
+      });
+      staff.push({
+        name: page.querySelector('.nameInp').value,
+        wage: page.querySelector('.wage').value,
+        mode: page.dataset.mode,
+        dep: page.querySelector('.dep').value,
+        pt: page.querySelector('.pt').value,
+        shifts
+      });
+    });
+    return {staff, active:(pages.querySelector('.page.active')||{}).dataset ? pages.querySelector('.page.active').dataset.id : null};
+  }
+  let restoring=false;
+  function save(){ if(restoring) return; try{ localStorage.setItem(STORE_KEY, JSON.stringify(serialize())); }catch(e){} }
+  function load(){ try{ const r=localStorage.getItem(STORE_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
 
   // events
   tabsEl.addEventListener("click", e=>{
@@ -358,16 +392,43 @@
     showPage(p.dataset.id);
   }
 
-  // 初期データ（時給・税区分が異なる2名）
-  const a=addStaff("スタッフA",1300,"kou",0,3);
-  addShift(a,"2026-07-01","10:00","17:00",45);
-  addShift(a,"2026-07-15","10:00","16:00",45);
-  addShift(a,"2026-08-03","10:00","19:00",60);
-  const b=addStaff("スタッフB",1400,"otsu",0,5);
-  addShift(b,"2026-07-05","09:30","18:30",60);
-  addShift(b,"2026-08-10","13:00","22:00",45);
+  function buildDemo(){
+    const a=addStaff("スタッフA",1300,"kou",0,3);
+    addShift(a,"2026-07-01","10:00","17:00",45);
+    addShift(a,"2026-07-15","10:00","16:00",45);
+    addShift(a,"2026-08-03","10:00","19:00",60);
+    const b=addStaff("スタッフB",1400,"otsu",0,5);
+    addShift(b,"2026-07-05","09:30","18:30",60);
+    addShift(b,"2026-08-10","13:00","22:00",45);
+    return a.dataset.id;
+  }
+
+  // 保存データがあれば復元、なければデモを表示
+  restoring=true;
+  let firstId=null;
+  const saved=load();
+  if(saved && Array.isArray(saved.staff) && saved.staff.length){
+    saved.staff.forEach(s=>{
+      const p=addStaff(s.name||"", (+s.wage||1300), (s.mode||"kou"), (+s.dep||0), (+s.pt||0));
+      if(!firstId) firstId=p.dataset.id;
+      const shifts=(s.shifts&&s.shifts.length)?s.shifts:[{}];
+      shifts.forEach(sh=>addShift(p, sh.date||"", sh.start||"", sh.end||"", (sh.brk!==undefined&&sh.brk!=="")?sh.brk:45));
+    });
+  } else {
+    firstId=buildDemo();
+  }
+  restoring=false;
   renderTabs();
-  showPage(a.dataset.id);
+  showPage((saved&&saved.active&&pages.querySelector(`.page[data-id="${saved.active}"]`))?saved.active:firstId);
+  save();
+
+  // データ消去
+  document.getElementById("resetBtn").addEventListener("click", ()=>{
+    if(confirm("保存した入力内容をすべて消去して初期状態に戻します。よろしいですか？")){
+      try{ localStorage.removeItem(STORE_KEY); }catch(e){}
+      location.reload();
+    }
+  });
 </script>
 </body>
 </html>
