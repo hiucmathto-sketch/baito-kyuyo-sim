@@ -140,7 +140,7 @@
 
   <button class="addStaff" id="addStaff">＋ スタッフ（ページ）を追加</button>
   <div class="saveRow">
-    <span style="color:var(--good);font-size:.76rem">💾 入力内容はこの端末のブラウザに自動保存され、次回も続きから使えます。</span>
+    <span id="saveMsg" style="color:var(--good);font-size:.76rem">💾 入力内容はこの端末のブラウザに自動保存され、次回も続きから使えます。</span>
     <button class="resetBtn" id="resetBtn">保存データを消去</button>
   </div>
 
@@ -372,14 +372,17 @@
     const active=pages.querySelector(".page.active");
     return {year:yearInput.value,active:active?active.dataset.id:null,staff};
   }
-  function save(){ if(restoring)return; try{localStorage.setItem(STORE_KEY,JSON.stringify(serialize()));}catch(e){} }
+  function save(){ if(restoring)return; try{localStorage.setItem(STORE_KEY,JSON.stringify(serialize()));
+    const m=document.getElementById("saveMsg"); if(m){const t=new Date();m.textContent=`💾 自動保存しました（${t.getHours()}:${String(t.getMinutes()).padStart(2,"0")}）— 次回も続きから使えます`;}
+  }catch(e){} }
   function load(){ try{const r=localStorage.getItem(STORE_KEY);return r?JSON.parse(r):null;}catch(e){return null;} }
 
   // ---- events ----
   tabsEl.addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t)return;
     if(t.dataset.id==="__add"){ createStaff(); return; } showPage(t.dataset.id); });
   pages.addEventListener("input",e=>{ if(e.target.classList.contains("nameInp")) renderTabs(); calc(); });
-  pages.addEventListener("change",e=>{ if(e.target.classList.contains("dpen")) calc(); });
+  pages.addEventListener("change",e=>{ calc(); });
+  window.addEventListener("beforeunload",save);
   pages.addEventListener("click",e=>{
     const page=e.target.closest(".page"); if(!page)return;
     if(e.target.classList.contains("mTab")){ setActiveMonth(page,e.target.dataset.ym); save(); }
