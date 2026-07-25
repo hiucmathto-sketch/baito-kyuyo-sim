@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>シフト給与計算（スタッフ別ページ）</title>
+<style>
+  :root{
+    --card:#fff; --accent:#ff6b6b; --accent2:#4dabf7;
+    --text:#2b2d42; --sub:#6b7280; --line:#e5e9f0; --good:#37b24d; --inc:#f59f00;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+    background:linear-gradient(160deg,#eef2fb,#fce9ec);color:var(--text);
+    min-height:100vh;padding:18px 12px;
+  }
+  .wrap{max-width:880px;margin:0 auto}
+  h1{font-size:1.35rem;text-align:center;margin-bottom:4px}
+  .lead{text-align:center;color:var(--sub);font-size:.8rem;margin-bottom:16px}
+  .card{background:var(--card);border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(40,50,90,.08);margin-bottom:16px}
+
+  /* tabs */
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;-webkit-overflow-scrolling:touch}
+  .tab{flex:0 0 auto;border:2px solid var(--line);background:#fff;color:var(--sub);
+    padding:9px 16px;border-radius:12px;font-weight:700;font-size:.88rem;cursor:pointer;white-space:nowrap}
+  .tab.on{background:var(--accent2);border-color:var(--accent2);color:#fff}
+  .tab.addTab{color:var(--accent);border-color:var(--accent);border-style:dashed}
+  .tab.allTab.on{background:#3b82f6;border-color:#3b82f6}
+
+  .page{display:none}
+  .page.active{display:block}
+
+  .field label{display:block;font-weight:600;font-size:.8rem;margin-bottom:5px}
+  .field .sub{color:var(--sub);font-weight:400;font-size:.72rem}
+  input[type=number],input[type=text],input[type=time],input[type=date]{
+    padding:9px 11px;font-size:.92rem;border:2px solid var(--line);border-radius:10px;
+    background:#fbfcfe;transition:border .2s;-moz-appearance:textfield;
+  }
+  input:focus{outline:none;border-color:var(--accent2)}
+  .seg{display:inline-flex;border:2px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:9px 16px;font-size:.9rem;cursor:pointer;font-weight:600;color:var(--sub)}
+  .seg button.on{background:var(--accent2);color:#fff}
+
+  .staffHead{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:14px}
+  .staffHead .nameInp{width:170px;font-weight:800;font-size:1.05rem}
+  .staffHead .delStaff{margin-left:auto;border:0;background:#fff0f0;color:var(--accent);padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:600;font-size:.8rem}
+
+  .staffSettings{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;background:#f8faff;border-radius:12px;padding:14px;margin-bottom:14px}
+  .wageBox{width:110px}
+  .depBox{width:66px}
+  .ptBox{width:76px}
+
+  .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;width:100%;font-size:.85rem}
+  th,td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:center}
+  th{color:var(--sub);font-size:.72rem;font-weight:700;background:#fafbfe}
+  .shiftTbl{min-width:520px}
+  .dateInp{width:140px}.timeInp{width:96px}.brkInp{width:60px;text-align:right}
+  .work{font-weight:700;text-align:right;min-width:92px}
+  .delShift{border:0;background:#fff0f0;color:var(--accent);width:26px;height:26px;border-radius:7px;cursor:pointer}
+  .addShift{margin-top:8px;border:2px dashed var(--accent2);color:var(--accent2);background:#fff;padding:7px 14px;border-radius:10px;font-weight:700;cursor:pointer;font-size:.82rem}
+
+  .monthWrap{margin-top:14px;padding-top:8px;border-top:1px dashed var(--line)}
+  .monthTbl,.grandTbl{min-width:600px}
+  .monthTbl td,.monthTbl th,.grandTbl td,.grandTbl th{text-align:right}
+  .monthTbl td:first-child,.monthTbl th:first-child,.grandTbl td:first-child,.grandTbl th:first-child{text-align:left}
+  .monthTbl td{font-weight:600}
+  .mlabel{font-weight:700;color:var(--accent2)}
+  .monthTbl .inc,.grandTbl .inc{color:var(--inc)}
+  .monthTbl .tax{color:var(--accent)}
+  .monthTbl .net{color:var(--good);font-weight:800}
+  .empty{text-align:center;color:var(--sub);font-weight:400}
+
+  .addStaff{border:2px dashed var(--accent);color:var(--accent);background:#fff;padding:11px 18px;border-radius:12px;font-weight:700;cursor:pointer;font-size:.92rem;width:100%}
+
+  .total{background:linear-gradient(135deg,#4dabf7,#3b82f6);color:#fff}
+  .total h3{font-size:1.05rem;margin-bottom:12px}
+  .grandTbl th{background:transparent;color:rgba(255,255,255,.85)}
+  .grandTbl td{border-bottom:1px solid rgba(255,255,255,.25);color:#fff;font-weight:700}
+  .grandTbl .net{font-weight:800}
+  .grandTbl .empty{color:rgba(255,255,255,.85)}
+
+  .note{background:#fff9e6;border-radius:10px;padding:10px 12px;font-size:.76rem;color:#856404;margin-top:12px;line-height:1.6}
+  footer{color:var(--sub);font-size:.72rem;margin-top:10px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🗓️ シフト給与計算</h1>
+  <p class="lead">スタッフごとにページを切り替え。時給・税区分も個別に設定できます</p>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="pages">
+    <!-- staff pages injected here -->
+    <div class="page" data-id="all">
+      <div class="card total">
+        <h3>📊 月別 全体合計</h3>
+        <div class="tblwrap">
+          <table class="grandTbl">
+            <thead><tr>
+              <th>月</th><th>実働</th><th>基本給</th><th>インセンティブ</th><th>支給総額</th><th>源泉所得税</th><th>差引支給額</th>
+            </tr></thead>
+            <tbody id="grandBody"></tbody>
+          </table>
+        </div>
+        <div class="note" style="background:rgba(255,255,255,.16);color:#fff">
+          各スタッフの時給・税区分・ポイントを個別に反映して合算しています。源泉所得税は<b>スタッフごと・月ごと</b>に計算。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="addStaff" id="addStaff">＋ スタッフ（ページ）を追加</button>
+
+  <footer>
+    ※ 源泉所得税は令和6年分「電子計算機等を使用する特例」に基づく<b>概算</b>（社会保険料控除は未考慮）。<br>
+    ※ 甲欄＝扶養控除等申告書 提出者向け／乙欄＝掛け持ち等の未提出者向け（支給総額×3.063%の概算）。<br>
+    ※ インセンティブ＝実働時間 × 獲得ポイント × 100円。正確な税額は税理士・給与ソフトでご確認ください。
+  </footer>
+</div>
+
+<script>
+  const yen = n => "¥" + Math.round(n).toLocaleString("ja-JP");
+  const $ = s => document.querySelector(s);
+  let seq = 0;
+
+  function hmText(min){
+    if(min<=0) return "0分";
+    const h=Math.floor(min/60), m=min%60;
+    return (h?h+"時間":"") + (m?m+"分":(h?"":"0分"));
+  }
+  function shiftMinutes(start,end,brk){
+    if(!start||!end) return 0;
+    const [sh,sm]=start.split(":").map(Number);
+    const [eh,em]=end.split(":").map(Number);
+    let dur=(eh*60+em)-(sh*60+sm);
+    if(dur<0) dur+=1440;
+    return Math.max(dur-(+brk||0),0);
+  }
+  function fmtMonth(key){
+    if(key==="未設定") return "日付未設定";
+    const [y,m]=key.split("-");
+    return `${y}年${+m}月`;
+  }
+
+  // 令和6年分 電子計算機特例による月額源泉所得税(概算)
+  function withholding(gross, mode, dep){
+    const A=Math.floor(gross);
+    if(mode==="otsu") return Math.round(A*0.03063);
+    if(A<=88000) return 0;
+    let kyuyo;
+    if(A<=135416) kyuyo=45834;
+    else if(A<=149999) kyuyo=A*0.4-8333;
+    else if(A<=299999) kyuyo=A*0.3+6667;
+    else if(A<=549999) kyuyo=A*0.2+36667;
+    else if(A<=708330) kyuyo=A*0.1+91667;
+    else kyuyo=195834;
+    let B=A-kyuyo-40000-31667*(+dep||0);
+    if(B<=0) return 0;
+    let tax;
+    if(B<=162500) tax=B*0.05105;
+    else if(B<=275000) tax=B*0.1021-8296;
+    else if(B<=579166) tax=B*0.2042-36374;
+    else tax=B*0.23483-54113;
+    return Math.round(tax/10)*10;
+  }
+
+  const pages = document.getElementById("pages");
+  const tabsEl = document.getElementById("tabs");
+  const allPage = pages.querySelector('.page[data-id="all"]');
+
+  function shiftRow(date="",start="",end="",brk=45){
+    return `<tr>
+      <td><input class="dateInp" type="date" value="${date}"></td>
+      <td><input class="timeInp s" type="time" value="${start}"></td>
+      <td><input class="timeInp e" type="time" value="${end}"></td>
+      <td><input class="brkInp b" type="number" min="0" step="5" value="${brk}"></td>
+      <td class="work">0分</td>
+      <td><button class="delShift" title="削除">×</button></td>
+    </tr>`;
+  }
+
+  function addStaff(name="", wage=1300, mode="kou", dep=0, pt=0){
+    const id = "s"+(++seq);
+    const page=document.createElement("div");
+    page.className="page"; page.dataset.id=id; page.dataset.mode=mode;
+    page.innerHTML=`
+      <div class="card">
+        <div class="staffHead">
+          <input class="nameInp" type="text" placeholder="スタッフ名" value="${name}">
+          <button class="delStaff">このスタッフを削除</button>
+        </div>
+        <div class="staffSettings">
+          <div class="field">
+            <label>基本時給 <span class="sub">円</span></label>
+            <input class="wageBox wage" type="number" min="0" step="10" value="${wage}">
+          </div>
+          <div class="field">
+            <label>税区分</label>
+            <div class="seg">
+              <button type="button" data-k="kou" class="${mode==='kou'?'on':''}">甲欄</button>
+              <button type="button" data-k="otsu" class="${mode==='otsu'?'on':''}">乙欄</button>
+            </div>
+          </div>
+          <div class="field depField" style="opacity:${mode==='kou'?1:.4}">
+            <label>扶養親族等の数</label>
+            <input class="depBox dep" type="number" min="0" step="1" value="${dep}">
+          </div>
+          <div class="field">
+            <label>獲得ポイント <span class="sub">1pt=100円/時</span></label>
+            <input class="ptBox pt" type="number" min="0" step="1" value="${pt}">
+          </div>
+        </div>
+        <div class="tblwrap">
+          <table class="shiftTbl">
+            <thead><tr><th>日付</th><th>開始</th><th>終了</th><th>休憩(分)</th><th>実働時間</th><th></th></tr></thead>
+            <tbody class="shifts"></tbody>
+          </table>
+        </div>
+        <button class="addShift">＋ シフトを追加</button>
+        <div class="monthWrap tblwrap">
+          <table class="monthTbl">
+            <thead><tr>
+              <th>月</th><th>実働</th><th>基本給</th><th>インセンティブ</th><th>支給総額</th><th>源泉所得税</th><th>差引支給額</th>
+            </tr></thead>
+            <tbody class="months"></tbody>
+          </table>
+        </div>
+      </div>`;
+    pages.insertBefore(page, allPage);
+    return page;
+  }
+
+  function addShift(page,d="",s="",e="",b=45){
+    page.querySelector(".shifts").insertAdjacentHTML("beforeend", shiftRow(d,s,e,b));
+    calc();
+  }
+
+  function renderTabs(){
+    tabsEl.innerHTML="";
+    pages.querySelectorAll('.page[data-id^="s"]').forEach(pg=>{
+      const name=pg.querySelector(".nameInp").value || "（無名）";
+      const b=document.createElement("button");
+      b.className="tab"; b.dataset.id=pg.dataset.id; b.textContent=name;
+      tabsEl.appendChild(b);
+    });
+    const add=document.createElement("button");
+    add.className="tab addTab"; add.dataset.id="__add"; add.textContent="＋ 追加";
+    tabsEl.appendChild(add);
+    const all=document.createElement("button");
+    all.className="tab allTab"; all.dataset.id="all"; all.textContent="📊 全体";
+    tabsEl.appendChild(all);
+    // 現在アクティブを維持
+    const active=pages.querySelector(".page.active");
+    highlightTab(active?active.dataset.id:null);
+  }
+  function highlightTab(id){
+    tabsEl.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on", t.dataset.id===id));
+  }
+  function showPage(id){
+    pages.querySelectorAll(".page").forEach(p=>p.classList.toggle("active", p.dataset.id===id));
+    highlightTab(id);
+    calc();
+  }
+
+  function payRow(min,base,inc,gross,tax,net,label){
+    return `<tr>
+      <td class="mlabel">${label}</td>
+      <td>${hmText(min)}</td>
+      <td>${yen(base)}</td>
+      <td class="inc">${yen(inc)}</td>
+      <td>${yen(gross)}</td>
+      <td class="tax">${tax?"−"+yen(tax):"¥0"}</td>
+      <td class="net">${yen(net)}</td>
+    </tr>`;
+  }
+
+  function calc(){
+    const grand={};
+    pages.querySelectorAll('.page[data-id^="s"]').forEach(page=>{
+      const wage=+page.querySelector(".wage").value||0;
+      const mode=page.dataset.mode;
+      const dep=+page.querySelector(".dep").value||0;
+      const pt=+page.querySelector(".pt").value||0;
+      const byMonth={};
+      page.querySelectorAll(".shifts tr").forEach(tr=>{
+        const m=shiftMinutes(tr.querySelector(".s").value,tr.querySelector(".e").value,tr.querySelector(".b").value);
+        tr.querySelector(".work").textContent=hmText(m);
+        const key=(tr.querySelector(".dateInp").value||"未設定").slice(0,7);
+        byMonth[key]=(byMonth[key]||0)+m;
+      });
+      const tb=page.querySelector(".months");
+      const keys=Object.keys(byMonth).sort();
+      if(!keys.length){ tb.innerHTML=`<tr><td class="empty" colspan="7">シフトを追加してください</td></tr>`; return; }
+      let html="";
+      keys.forEach(key=>{
+        const min=byMonth[key], hours=min/60;
+        const base=Math.round(wage*hours);
+        const inc=Math.round(hours*pt*100);
+        const gross=base+inc;
+        const tax=withholding(gross, mode, dep);
+        const net=gross-tax;
+        html+=payRow(min,base,inc,gross,tax,net,fmtMonth(key));
+        const g=grand[key]||(grand[key]={min:0,base:0,inc:0,gross:0,tax:0,net:0});
+        g.min+=min;g.base+=base;g.inc+=inc;g.gross+=gross;g.tax+=tax;g.net+=net;
+      });
+      tb.innerHTML=html;
+    });
+    const gb=document.getElementById("grandBody");
+    const gk=Object.keys(grand).sort();
+    gb.innerHTML = gk.length
+      ? gk.map(k=>{const g=grand[k];return payRow(g.min,g.base,g.inc,g.gross,g.tax,g.net,fmtMonth(k));}).join("")
+      : `<tr><td class="empty" colspan="7">データがありません</td></tr>`;
+  }
+
+  // events
+  tabsEl.addEventListener("click", e=>{
+    const t=e.target.closest(".tab"); if(!t) return;
+    if(t.dataset.id==="__add"){ createStaffAndShow(); return; }
+    showPage(t.dataset.id);
+  });
+  pages.addEventListener("input", e=>{
+    if(e.target.classList.contains("nameInp")) renderTabs();
+    calc();
+  });
+  pages.addEventListener("click", e=>{
+    const page=e.target.closest(".page");
+    if(e.target.classList.contains("addShift")) addShift(page);
+    else if(e.target.classList.contains("delShift")){
+      const tbody=e.target.closest(".shifts");
+      e.target.closest("tr").remove();
+      if(!tbody.children.length) addShift(page);
+      calc();
+    } else if(e.target.classList.contains("delStaff")){
+      const wasActive=page.classList.contains("active");
+      page.remove();
+      renderTabs();
+      if(wasActive){
+        const first=pages.querySelector('.page[data-id^="s"]');
+        showPage(first?first.dataset.id:"all");
+      } else calc();
+      if(!pages.querySelector('.page[data-id^="s"]')) createStaffAndShow();
+    } else if(e.target.matches(".seg button")){
+      page.dataset.mode=e.target.dataset.k;
+      page.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on", b===e.target));
+      page.querySelector(".depField").style.opacity = e.target.dataset.k==="kou"?1:.4;
+      calc();
+    }
+  });
+  document.getElementById("addStaff").addEventListener("click", createStaffAndShow);
+
+  function createStaffAndShow(){
+    const p=addStaff("スタッフ"+String.fromCharCode(64+seq+1), 1300, "kou", 0, 0);
+    addShift(p);
+    renderTabs();
+    showPage(p.dataset.id);
+  }
+
+  // 初期データ（時給・税区分が異なる2名）
+  const a=addStaff("スタッフA",1300,"kou",0,3);
+  addShift(a,"2026-07-01","10:00","17:00",45);
+  addShift(a,"2026-07-15","10:00","16:00",45);
+  addShift(a,"2026-08-03","10:00","19:00",60);
+  const b=addStaff("スタッフB",1400,"otsu",0,5);
+  addShift(b,"2026-07-05","09:30","18:30",60);
+  addShift(b,"2026-08-10","13:00","22:00",45);
+  renderTabs();
+  showPage(a.dataset.id);
+</script>
+</body>
+</html>
