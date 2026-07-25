@@ -234,7 +234,6 @@
         <td><input type="time" class="dout" value="${v.o||""}"></td>
         <td>${brkSelect(v.b)}</td>
         <td class="dwork">–</td>
-        <td class="dstat">–</td>
         <td><input type="checkbox" class="dpen"${v.p?" checked":""}></td></tr>`;
     }
     return h;
@@ -252,7 +251,7 @@
       </div>
       <div class="calWrap">
         <table class="calTbl">
-          <thead><tr><th>日</th><th>曜</th><th>出勤</th><th>退勤</th><th>休憩</th><th>実働</th><th>状態</th><th>罰</th></tr></thead>
+          <thead><tr><th>日</th><th>曜</th><th>出勤</th><th>退勤</th><th>休憩</th><th>実働</th><th>休み</th></tr></thead>
           <tbody>${dayRows(year,month,days)}</tbody>
         </table>
       </div>
@@ -263,7 +262,7 @@
           <div class="cell"><span>基本給</span><b class="m-base">¥0</b></div>
           <div class="cell"><span>インセンティブ</span><b class="m-inc">¥0</b></div>
           <div class="cell"><span>出勤日数</span><b class="m-days">0日</b></div>
-          <div class="cell pen"><span>罰（欠勤）</span><b class="m-pen">0日</b></div>
+          <div class="cell pen"><span>休み</span><b class="m-pen">0日</b></div>
           <div class="cell"><span>支給総額</span><b class="m-gross">¥0</b></div>
           <div class="cell tax"><span>源泉所得税</span><b class="m-tax">¥0</b></div>
         </div>
@@ -325,10 +324,8 @@
           tr.querySelector(".dwork").textContent=(i&&o)?hmText(w):"–";
           tr.classList.toggle("worked",worked);
           tr.classList.toggle("penalty",pen&&!worked);
-          const stat=tr.querySelector(".dstat");
-          if(worked){ stat.textContent="○出勤"; workDays++; }
-          else if(pen){ stat.textContent="✕罰"; penDays++; }
-          else { stat.textContent="–"; }
+          if(worked) workDays++;
+          else if(pen) penDays++;
           min+=w;
         });
         const hours=min/60, base=Math.round(wage*hours), inc=Math.round(hours*pt*100);
