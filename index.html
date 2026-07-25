@@ -350,7 +350,11 @@
   }
 
   // ---- 保存 ----
+  // ※ キーは今後も変更しない。構成を変えても過去データを引き継ぐため固定。
   const STORE_KEY="baitoKyuyoSim.v2";
+  const BAK_KEY=STORE_KEY+".bak";
+  const LEGACY_KEYS=["baitoKyuyoSim.v1","baitoKyuyoSim"];
+  const SCHEMA=2;
   let restoring=false;
   function serialize(){
     const staff=[];
@@ -372,10 +376,33 @@
     const active=pages.querySelector(".page.active");
     return {year:yearInput.value,active:active?active.dataset.id:null,staff};
   }
-  function save(){ if(restoring)return; try{localStorage.setItem(STORE_KEY,JSON.stringify(serialize()));
+  function save(){ if(restoring)return; try{
+    const data=serialize(); data.schema=SCHEMA;
+    // 空データで既存の保存を上書きしない（誤消去を防ぐ）
+    if(!Array.isArray(data.staff)||!data.staff.length) return;
+    const prev=localStorage.getItem(STORE_KEY);
+    if(prev) localStorage.setItem(BAK_KEY,prev); // 直前の状態を予備として保持
+    localStorage.setItem(STORE_KEY,JSON.stringify(data));
     const m=document.getElementById("saveMsg"); if(m){const t=new Date();m.textContent=`💾 自動保存しました（${t.getHours()}:${String(t.getMinutes()).padStart(2,"0")}）— 次回も続きから使えます`;}
   }catch(e){} }
-  function load(){ try{const r=localStorage.getItem(STORE_KEY);return r?JSON.parse(r):null;}catch(e){return null;} }
+  function readRaw(key){ try{const r=localStorage.getItem(key);return r?JSON.parse(r):null;}catch(e){return null;} }
+  // 古い/異なる構成のデータでも壊れず読み込めるよう正規化する
+  function migrate(d){
+    if(!d||typeof d!=="object") return null;
+    if(!Array.isArray(d.staff)) d.staff=[];
+    d.staff.forEach(s=>{
+      s.months=Array.isArray(s.months)?s.months:[];
+      s.months.forEach(mo=>{ if(!mo||typeof mo!=="object")return; if(!mo.days||typeof mo.days!=="object") mo.days={}; });
+    });
+    d.schema=SCHEMA;
+    return d;
+  }
+  function load(){
+    let d=migrate(readRaw(STORE_KEY)); if(d&&d.staff.length) return d;
+    d=migrate(readRaw(BAK_KEY)); if(d&&d.staff.length) return d; // 予備から復旧
+    for(const k of LEGACY_KEYS){ d=migrate(readRaw(k)); if(d&&d.staff.length) return d; } // 旧キーから引き継ぎ
+    return null;
+  }
 
   // ---- events ----
   tabsEl.addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t)return;
@@ -408,7 +435,7 @@
   document.getElementById("addStaff").addEventListener("click",createStaff);
   document.getElementById("resetBtn").addEventListener("click",()=>{
     if(confirm("保存した入力内容をすべて消去して初期状態に戻します。よろしいですか？")){
-      try{localStorage.removeItem(STORE_KEY);}catch(e){} location.reload();
+      try{[STORE_KEY,BAK_KEY,...LEGACY_KEYS].forEach(k=>localStorage.removeItem(k));}catch(e){} location.reload();
     }
   });
 
