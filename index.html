@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>シフト給与計算（スタッフ別ページ）</title>
+<title>シフト給与計算（月別カレンダー）</title>
 <style>
   :root{
     --card:#fff; --accent:#ff6b6b; --accent2:#4dabf7;
     --text:#2b2d42; --sub:#6b7280; --line:#e5e9f0; --good:#37b24d; --inc:#f59f00;
+    --sun:#fff0f0; --sat:#eef4ff; --sunT:#e03131; --satT:#3b82f6;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -15,12 +16,22 @@
     background:linear-gradient(160deg,#eef2fb,#fce9ec);color:var(--text);
     min-height:100vh;padding:18px 12px;
   }
-  .wrap{max-width:880px;margin:0 auto}
+  .wrap{max-width:900px;margin:0 auto}
   h1{font-size:1.35rem;text-align:center;margin-bottom:4px}
-  .lead{text-align:center;color:var(--sub);font-size:.8rem;margin-bottom:16px}
-  .card{background:var(--card);border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(40,50,90,.08);margin-bottom:16px}
+  .lead{text-align:center;color:var(--sub);font-size:.8rem;margin-bottom:14px}
+  .card{background:var(--card);border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(40,50,90,.08);margin-bottom:16px}
 
-  /* tabs */
+  .topbar{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+  .field label{display:block;font-weight:600;font-size:.8rem;margin-bottom:5px}
+  .field .sub{color:var(--sub);font-weight:400;font-size:.72rem}
+  input[type=number],input[type=text],input[type=time]{
+    padding:9px 11px;font-size:.92rem;border:2px solid var(--line);border-radius:10px;
+    background:#fbfcfe;transition:border .2s;-moz-appearance:textfield;
+  }
+  input:focus{outline:none;border-color:var(--accent2)}
+  select{padding:9px 11px;font-size:.92rem;border:2px solid var(--line);border-radius:10px;background:#fbfcfe}
+  .yearBox{width:96px;font-weight:800;font-size:1.05rem;text-align:center}
+
   .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;-webkit-overflow-scrolling:touch}
   .tab{flex:0 0 auto;border:2px solid var(--line);background:#fff;color:var(--sub);
     padding:9px 16px;border-radius:12px;font-weight:700;font-size:.88rem;cursor:pointer;white-space:nowrap}
@@ -31,13 +42,6 @@
   .page{display:none}
   .page.active{display:block}
 
-  .field label{display:block;font-weight:600;font-size:.8rem;margin-bottom:5px}
-  .field .sub{color:var(--sub);font-weight:400;font-size:.72rem}
-  input[type=number],input[type=text],input[type=time],input[type=date]{
-    padding:9px 11px;font-size:.92rem;border:2px solid var(--line);border-radius:10px;
-    background:#fbfcfe;transition:border .2s;-moz-appearance:textfield;
-  }
-  input:focus{outline:none;border-color:var(--accent2)}
   .seg{display:inline-flex;border:2px solid var(--line);border-radius:10px;overflow:hidden}
   .seg button{border:0;background:#fff;padding:9px 16px;font-size:.9rem;cursor:pointer;font-weight:600;color:var(--sub)}
   .seg button.on{background:var(--accent2);color:#fff}
@@ -45,59 +49,74 @@
   .staffHead{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:14px}
   .staffHead .nameInp{width:170px;font-weight:800;font-size:1.05rem}
   .staffHead .delStaff{margin-left:auto;border:0;background:#fff0f0;color:var(--accent);padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:600;font-size:.8rem}
-
   .staffSettings{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;background:#f8faff;border-radius:12px;padding:14px;margin-bottom:14px}
-  .wageBox{width:110px}
-  .depBox{width:66px}
-  .ptBox{width:76px}
+  .wageBox{width:110px}.depBox{width:66px}.ptBox{width:76px}
 
-  .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{border-collapse:collapse;width:100%;font-size:.85rem}
-  th,td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:center}
-  th{color:var(--sub);font-size:.72rem;font-weight:700;background:#fafbfe}
-  .shiftTbl{min-width:520px}
-  .dateInp{width:140px}.timeInp{width:96px}.brkInp{width:60px;text-align:right}
-  .work{font-weight:700;text-align:right;min-width:92px}
-  .delShift{border:0;background:#fff0f0;color:var(--accent);width:26px;height:26px;border-radius:7px;cursor:pointer}
-  .addShift{margin-top:8px;border:2px dashed var(--accent2);color:var(--accent2);background:#fff;padding:7px 14px;border-radius:10px;font-weight:700;cursor:pointer;font-size:.82rem}
+  .addMonthBar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .addMonthBtn{border:2px dashed var(--accent2);color:var(--accent2);background:#fff;padding:9px 16px;border-radius:10px;font-weight:700;cursor:pointer;font-size:.86rem}
 
-  .monthWrap{margin-top:14px;padding-top:8px;border-top:1px dashed var(--line)}
-  .monthTbl,.grandTbl{min-width:600px}
-  .monthTbl td,.monthTbl th,.grandTbl td,.grandTbl th{text-align:right}
-  .monthTbl td:first-child,.monthTbl th:first-child,.grandTbl td:first-child,.grandTbl th:first-child{text-align:left}
-  .monthTbl td{font-weight:600}
-  .mlabel{font-weight:700;color:var(--accent2)}
-  .monthTbl .inc,.grandTbl .inc{color:var(--inc)}
-  .monthTbl .tax{color:var(--accent)}
-  .monthTbl .net{color:var(--good);font-weight:800}
-  .empty{text-align:center;color:var(--sub);font-weight:400}
+  /* month block */
+  .monthBlock{border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:18px;background:#fff}
+  .mHead{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#4dabf7,#3b82f6);color:#fff;padding:12px 16px}
+  .mHead .mYear{font-size:.85rem;opacity:.9}
+  .mHead .mMonth{font-size:1.5rem;font-weight:800;line-height:1}
+  .mHead .delMonth{margin-left:auto;border:0;background:rgba(255,255,255,.2);color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.76rem;font-weight:600}
+  .mSummary{display:flex;flex-wrap:wrap;gap:10px 18px;padding:10px 16px;background:#f2f7ff;font-size:.84rem;border-bottom:1px solid var(--line)}
+  .mSummary div span{color:var(--sub);font-size:.72rem;margin-right:5px}
+  .mSummary b{font-size:1rem}
+  .mSummary .net b{color:var(--good)}.mSummary .tax b{color:var(--accent)}
+
+  .calWrap{overflow-x:auto}
+  .calTbl{border-collapse:collapse;width:100%;min-width:520px;font-size:.86rem}
+  .calTbl th{background:#fafbfe;color:var(--sub);font-size:.72rem;font-weight:700;padding:7px 6px;border-bottom:1px solid var(--line)}
+  .calTbl td{padding:5px 6px;border-bottom:1px solid #f0f2f7;text-align:center}
+  .calTbl .dnum{font-weight:700;width:34px}
+  .calTbl .dow{width:30px;font-weight:700;color:var(--sub)}
+  .calTbl input[type=time]{width:104px;padding:6px 8px}
+  .calTbl .dbrk{width:80px;padding:6px 6px}
+  .calTbl .dwork{font-weight:700;min-width:80px;text-align:right;color:var(--text)}
+  tr.sun{background:var(--sun)} tr.sun .dow{color:var(--sunT)}
+  tr.sat{background:var(--sat)} tr.sat .dow{color:var(--satT)}
+  tr.worked{box-shadow:inset 3px 0 0 var(--good)}
 
   .addStaff{border:2px dashed var(--accent);color:var(--accent);background:#fff;padding:11px 18px;border-radius:12px;font-weight:700;cursor:pointer;font-size:.92rem;width:100%}
 
   .total{background:linear-gradient(135deg,#4dabf7,#3b82f6);color:#fff}
   .total h3{font-size:1.05rem;margin-bottom:12px}
-  .grandTbl th{background:transparent;color:rgba(255,255,255,.85)}
+  .grandTbl{width:100%;min-width:600px;border-collapse:collapse;font-size:.85rem}
+  .grandTbl th,.grandTbl td{padding:8px;text-align:right;white-space:nowrap}
+  .grandTbl th:first-child,.grandTbl td:first-child{text-align:left}
+  .grandTbl th{color:rgba(255,255,255,.85);font-size:.72rem}
   .grandTbl td{border-bottom:1px solid rgba(255,255,255,.25);color:#fff;font-weight:700}
-  .grandTbl .net{font-weight:800}
-  .grandTbl .empty{color:rgba(255,255,255,.85)}
+  .grandTbl .inc{color:#ffe08a}.grandTbl .empty{opacity:.85;text-align:center}
 
+  .saveRow{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap}
+  .resetBtn{border:1px solid var(--line);background:#fff;color:var(--sub);padding:7px 12px;border-radius:9px;font-size:.76rem;cursor:pointer}
   .note{background:#fff9e6;border-radius:10px;padding:10px 12px;font-size:.76rem;color:#856404;margin-top:12px;line-height:1.6}
   footer{color:var(--sub);font-size:.72rem;margin-top:10px;line-height:1.7}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🗓️ シフト給与計算</h1>
-  <p class="lead">スタッフごとにページを切り替え。時給・税区分も個別に設定できます</p>
+  <h1>🗓️ シフト給与計算（月別カレンダー）</h1>
+  <p class="lead">年は最初に設定するだけ。月ごとに日付が自動で並ぶので、働いた日の「出勤・退勤・休憩」だけ入力</p>
+
+  <div class="card">
+    <div class="topbar">
+      <div class="field">
+        <label>対象の年 <span class="sub">この年で月を追加</span></label>
+        <input class="yearBox" type="number" id="year" value="2026" min="2000" max="2100" step="1">
+      </div>
+    </div>
+  </div>
 
   <div class="tabs" id="tabs"></div>
 
   <div id="pages">
-    <!-- staff pages injected here -->
     <div class="page" data-id="all">
       <div class="card total">
-        <h3>📊 月別 全体合計</h3>
-        <div class="tblwrap">
+        <h3>📊 月別 全体合計（全スタッフ）</h3>
+        <div class="calWrap">
           <table class="grandTbl">
             <thead><tr>
               <th>月</th><th>実働</th><th>基本給</th><th>インセンティブ</th><th>支給総額</th><th>源泉所得税</th><th>差引支給額</th>
@@ -105,89 +124,57 @@
             <tbody id="grandBody"></tbody>
           </table>
         </div>
-        <div class="note" style="background:rgba(255,255,255,.16);color:#fff">
-          各スタッフの時給・税区分・ポイントを個別に反映して合算しています。源泉所得税は<b>スタッフごと・月ごと</b>に計算。
-        </div>
       </div>
     </div>
   </div>
 
   <button class="addStaff" id="addStaff">＋ スタッフ（ページ）を追加</button>
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap">
+  <div class="saveRow">
     <span style="color:var(--good);font-size:.76rem">💾 入力内容はこの端末のブラウザに自動保存され、次回も続きから使えます。</span>
-    <button id="resetBtn" style="border:1px solid var(--line);background:#fff;color:var(--sub);padding:7px 12px;border-radius:9px;font-size:.76rem;cursor:pointer">保存データを消去</button>
+    <button class="resetBtn" id="resetBtn">保存データを消去</button>
   </div>
 
   <footer>
-    ※ 源泉所得税は令和6年分「電子計算機等を使用する特例」に基づく<b>概算</b>（社会保険料控除は未考慮）。<br>
-    ※ 甲欄＝扶養控除等申告書 提出者向け／乙欄＝掛け持ち等の未提出者向け（支給総額×3.063%の概算）。<br>
-    ※ インセンティブ＝実働時間 × 獲得ポイント × 100円。正確な税額は税理士・給与ソフトでご確認ください。
+    ※ 実働 = 退勤 − 出勤 − 休憩。インセンティブ = 実働時間 × 獲得ポイント × 100円。<br>
+    ※ 源泉所得税は令和6年分「電子計算機特例」に基づく<b>概算</b>（社保控除は未考慮）。甲欄＝申告書提出者／乙欄＝未提出者(×3.063%)。<br>
+    ※ 正確な税額・手取りは税理士・給与ソフトでご確認ください。
   </footer>
 </div>
 
 <script>
-  const yen = n => "¥" + Math.round(n).toLocaleString("ja-JP");
-  const $ = s => document.querySelector(s);
-  let seq = 0;
+  const WD=["日","月","火","水","木","金","土"];
+  const yen=n=>"¥"+Math.round(n).toLocaleString("ja-JP");
+  let seq=0;
 
-  function hmText(min){
-    if(min<=0) return "0分";
-    const h=Math.floor(min/60), m=min%60;
-    return (h?h+"時間":"") + (m?m+"分":(h?"":"0分"));
+  function hmText(min){ if(min<=0)return"0分"; const h=Math.floor(min/60),m=min%60; return (h?h+"時間":"")+(m?m+"分":(h?"":"0分")); }
+  function calcMin(inp,out,brk){
+    if(!inp||!out) return 0;
+    const [ih,im]=inp.split(":").map(Number), [oh,om]=out.split(":").map(Number);
+    let d=(oh*60+om)-(ih*60+im); if(d<0) d+=1440;
+    return Math.max(d-(+brk||0),0);
   }
-  function shiftMinutes(start,end,brk){
-    if(!start||!end) return 0;
-    const [sh,sm]=start.split(":").map(Number);
-    const [eh,em]=end.split(":").map(Number);
-    let dur=(eh*60+em)-(sh*60+sm);
-    if(dur<0) dur+=1440;
-    return Math.max(dur-(+brk||0),0);
-  }
-  function fmtMonth(key){
-    if(key==="未設定") return "日付未設定";
-    const [y,m]=key.split("-");
-    return `${y}年${+m}月`;
-  }
+  function daysInMonth(y,m){ return new Date(y,m,0).getDate(); }
+  function fmtYM(ym){ const [y,m]=ym.split("-"); return `${y}年${+m}月`; }
 
-  // 令和6年分 電子計算機特例による月額源泉所得税(概算)
-  function withholding(gross, mode, dep){
+  // 令和6年分 電子計算機特例（概算）
+  function withholding(gross,mode,dep){
     const A=Math.floor(gross);
     if(mode==="otsu") return Math.round(A*0.03063);
     if(A<=88000) return 0;
-    let kyuyo;
-    if(A<=135416) kyuyo=45834;
-    else if(A<=149999) kyuyo=A*0.4-8333;
-    else if(A<=299999) kyuyo=A*0.3+6667;
-    else if(A<=549999) kyuyo=A*0.2+36667;
-    else if(A<=708330) kyuyo=A*0.1+91667;
-    else kyuyo=195834;
-    let B=A-kyuyo-40000-31667*(+dep||0);
-    if(B<=0) return 0;
-    let tax;
-    if(B<=162500) tax=B*0.05105;
-    else if(B<=275000) tax=B*0.1021-8296;
-    else if(B<=579166) tax=B*0.2042-36374;
-    else tax=B*0.23483-54113;
-    return Math.round(tax/10)*10;
+    let k; if(A<=135416)k=45834; else if(A<=149999)k=A*0.4-8333; else if(A<=299999)k=A*0.3+6667;
+    else if(A<=549999)k=A*0.2+36667; else if(A<=708330)k=A*0.1+91667; else k=195834;
+    let B=A-k-40000-31667*(+dep||0); if(B<=0) return 0;
+    let t; if(B<=162500)t=B*0.05105; else if(B<=275000)t=B*0.1021-8296; else if(B<=579166)t=B*0.2042-36374; else t=B*0.23483-54113;
+    return Math.round(t/10)*10;
   }
 
-  const pages = document.getElementById("pages");
-  const tabsEl = document.getElementById("tabs");
-  const allPage = pages.querySelector('.page[data-id="all"]');
+  const pages=document.getElementById("pages");
+  const tabsEl=document.getElementById("tabs");
+  const allPage=pages.querySelector('.page[data-id="all"]');
+  const yearInput=document.getElementById("year");
 
-  function shiftRow(date="",start="",end="",brk=45){
-    return `<tr>
-      <td><input class="dateInp" type="date" value="${date}"></td>
-      <td><input class="timeInp s" type="time" value="${start}"></td>
-      <td><input class="timeInp e" type="time" value="${end}"></td>
-      <td><input class="brkInp b" type="number" min="0" step="5" value="${brk}"></td>
-      <td class="work">0分</td>
-      <td><button class="delShift" title="削除">×</button></td>
-    </tr>`;
-  }
-
-  function addStaff(name="", wage=1300, mode="kou", dep=0, pt=0){
-    const id = "s"+(++seq);
+  function staffPage(name="",wage=1300,mode="kou",dep=0,pt=0){
+    const id="s"+(++seq);
     const page=document.createElement("div");
     page.className="page"; page.dataset.id=id; page.dataset.mode=mode;
     page.innerHTML=`
@@ -197,89 +184,95 @@
           <button class="delStaff">このスタッフを削除</button>
         </div>
         <div class="staffSettings">
-          <div class="field">
-            <label>基本時給 <span class="sub">円</span></label>
-            <input class="wageBox wage" type="number" min="0" step="10" value="${wage}">
-          </div>
-          <div class="field">
-            <label>税区分</label>
+          <div class="field"><label>基本時給 <span class="sub">円</span></label>
+            <input class="wageBox wage" type="number" min="0" step="10" value="${wage}"></div>
+          <div class="field"><label>税区分</label>
             <div class="seg">
               <button type="button" data-k="kou" class="${mode==='kou'?'on':''}">甲欄</button>
               <button type="button" data-k="otsu" class="${mode==='otsu'?'on':''}">乙欄</button>
-            </div>
-          </div>
-          <div class="field depField" style="opacity:${mode==='kou'?1:.4}">
-            <label>扶養親族等の数</label>
-            <input class="depBox dep" type="number" min="0" step="1" value="${dep}">
-          </div>
-          <div class="field">
-            <label>獲得ポイント <span class="sub">1pt=100円/時</span></label>
-            <input class="ptBox pt" type="number" min="0" step="1" value="${pt}">
-          </div>
+            </div></div>
+          <div class="field depField" style="opacity:${mode==='kou'?1:.4}"><label>扶養親族等の数</label>
+            <input class="depBox dep" type="number" min="0" step="1" value="${dep}"></div>
+          <div class="field"><label>獲得ポイント <span class="sub">1pt=100円/時</span></label>
+            <input class="ptBox pt" type="number" min="0" step="1" value="${pt}"></div>
         </div>
-        <div class="tblwrap">
-          <table class="shiftTbl">
-            <thead><tr><th>日付</th><th>開始</th><th>終了</th><th>休憩(分)</th><th>実働時間</th><th></th></tr></thead>
-            <tbody class="shifts"></tbody>
-          </table>
+        <div class="addMonthBar">
+          <label style="font-size:.82rem;font-weight:600">月を追加：</label>
+          <select class="monthSel">${Array.from({length:12},(_,i)=>`<option value="${i+1}">${i+1}月</option>`).join("")}</select>
+          <button class="addMonthBtn" type="button">＋ この月を追加</button>
         </div>
-        <button class="addShift">＋ シフトを追加</button>
-        <div class="monthWrap tblwrap">
-          <table class="monthTbl">
-            <thead><tr>
-              <th>月</th><th>実働</th><th>基本給</th><th>インセンティブ</th><th>支給総額</th><th>源泉所得税</th><th>差引支給額</th>
-            </tr></thead>
-            <tbody class="months"></tbody>
-          </table>
-        </div>
+        <div class="months"></div>
       </div>`;
-    pages.insertBefore(page, allPage);
+    pages.insertBefore(page,allPage);
     return page;
   }
 
-  function addShift(page,d="",s="",e="",b=45){
-    page.querySelector(".shifts").insertAdjacentHTML("beforeend", shiftRow(d,s,e,b));
-    calc();
+  function brkSelect(val){
+    const opts=[["0","なし"],["45","45分"],["90","90分"]];
+    const sel=(val===undefined||val==="")?"45":String(val);
+    return `<select class="dbrk">${opts.map(([v,l])=>`<option value="${v}"${v===sel?" selected":""}>${l}</option>`).join("")}</select>`;
+  }
+  function dayRows(year,month,days){
+    const n=daysInMonth(year,month); let h="";
+    for(let d=1;d<=n;d++){
+      const dow=new Date(year,month-1,d).getDay();
+      const cls=dow===0?"sun":(dow===6?"sat":"");
+      const v=(days&&days[d])||{};
+      h+=`<tr class="dayrow ${cls}" data-day="${d}">
+        <td class="dnum">${d}</td><td class="dow">${WD[dow]}</td>
+        <td><input type="time" class="din" value="${v.i||""}"></td>
+        <td><input type="time" class="dout" value="${v.o||""}"></td>
+        <td>${brkSelect(v.b)}</td>
+        <td class="dwork">–</td></tr>`;
+    }
+    return h;
+  }
+
+  function addMonth(page,year,month,days){
+    const ym=`${year}-${String(month).padStart(2,"0")}`;
+    if(page.querySelector(`.monthBlock[data-ym="${ym}"]`)) return null;
+    const block=document.createElement("div");
+    block.className="monthBlock"; block.dataset.ym=ym;
+    block.innerHTML=`
+      <div class="mHead">
+        <div><div class="mYear">${year}年</div><div class="mMonth">${month}月</div></div>
+        <button class="delMonth" type="button">この月を削除</button>
+      </div>
+      <div class="mSummary">
+        <div><span>実働</span><b class="m-hours">0分</b></div>
+        <div><span>支給総額</span><b class="m-gross">¥0</b></div>
+        <div class="tax"><span>源泉所得税</span><b class="m-tax">¥0</b></div>
+        <div class="net"><span>差引支給額</span><b class="m-net">¥0</b></div>
+      </div>
+      <div class="calWrap">
+        <table class="calTbl">
+          <thead><tr><th>日</th><th>曜</th><th>出勤</th><th>退勤</th><th>休憩(分)</th><th>実働</th></tr></thead>
+          <tbody>${dayRows(year,month,days)}</tbody>
+        </table>
+      </div>`;
+    // 月順に挿入
+    const cont=page.querySelector(".months");
+    const blocks=[...cont.querySelectorAll(".monthBlock")];
+    const after=blocks.find(b=>b.dataset.ym>ym);
+    cont.insertBefore(block, after||null);
+    return block;
   }
 
   function renderTabs(){
     tabsEl.innerHTML="";
     pages.querySelectorAll('.page[data-id^="s"]').forEach(pg=>{
-      const name=pg.querySelector(".nameInp").value || "（無名）";
       const b=document.createElement("button");
-      b.className="tab"; b.dataset.id=pg.dataset.id; b.textContent=name;
+      b.className="tab"; b.dataset.id=pg.dataset.id;
+      b.textContent=pg.querySelector(".nameInp").value||"（無名）";
       tabsEl.appendChild(b);
     });
-    const add=document.createElement("button");
-    add.className="tab addTab"; add.dataset.id="__add"; add.textContent="＋ 追加";
-    tabsEl.appendChild(add);
-    const all=document.createElement("button");
-    all.className="tab allTab"; all.dataset.id="all"; all.textContent="📊 全体";
-    tabsEl.appendChild(all);
-    // 現在アクティブを維持
+    const add=document.createElement("button"); add.className="tab addTab"; add.dataset.id="__add"; add.textContent="＋ 追加"; tabsEl.appendChild(add);
+    const all=document.createElement("button"); all.className="tab allTab"; all.dataset.id="all"; all.textContent="📊 全体"; tabsEl.appendChild(all);
     const active=pages.querySelector(".page.active");
-    highlightTab(active?active.dataset.id:null);
+    highlight(active?active.dataset.id:null);
   }
-  function highlightTab(id){
-    tabsEl.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on", t.dataset.id===id));
-  }
-  function showPage(id){
-    pages.querySelectorAll(".page").forEach(p=>p.classList.toggle("active", p.dataset.id===id));
-    highlightTab(id);
-    calc();
-  }
-
-  function payRow(min,base,inc,gross,tax,net,label){
-    return `<tr>
-      <td class="mlabel">${label}</td>
-      <td>${hmText(min)}</td>
-      <td>${yen(base)}</td>
-      <td class="inc">${yen(inc)}</td>
-      <td>${yen(gross)}</td>
-      <td class="tax">${tax?"−"+yen(tax):"¥0"}</td>
-      <td class="net">${yen(net)}</td>
-    </tr>`;
-  }
+  function highlight(id){ tabsEl.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.id===id)); }
+  function showPage(id){ pages.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.dataset.id===id)); highlight(id); calc(); }
 
   function calc(){
     const grand={};
@@ -288,147 +281,122 @@
       const mode=page.dataset.mode;
       const dep=+page.querySelector(".dep").value||0;
       const pt=+page.querySelector(".pt").value||0;
-      const byMonth={};
-      page.querySelectorAll(".shifts tr").forEach(tr=>{
-        const m=shiftMinutes(tr.querySelector(".s").value,tr.querySelector(".e").value,tr.querySelector(".b").value);
-        tr.querySelector(".work").textContent=hmText(m);
-        const key=(tr.querySelector(".dateInp").value||"未設定").slice(0,7);
-        byMonth[key]=(byMonth[key]||0)+m;
-      });
-      const tb=page.querySelector(".months");
-      const keys=Object.keys(byMonth).sort();
-      if(!keys.length){ tb.innerHTML=`<tr><td class="empty" colspan="7">シフトを追加してください</td></tr>`; return; }
-      let html="";
-      keys.forEach(key=>{
-        const min=byMonth[key], hours=min/60;
+      page.querySelectorAll(".monthBlock").forEach(block=>{
+        const ym=block.dataset.ym;
+        let min=0;
+        block.querySelectorAll(".dayrow").forEach(tr=>{
+          const i=tr.querySelector(".din").value, o=tr.querySelector(".dout").value, b=tr.querySelector(".dbrk").value;
+          const w=calcMin(i,o,b);
+          tr.querySelector(".dwork").textContent=(i&&o)?hmText(w):"–";
+          tr.classList.toggle("worked", w>0);
+          min+=w;
+        });
+        const hours=min/60;
         const base=Math.round(wage*hours);
         const inc=Math.round(hours*pt*100);
         const gross=base+inc;
-        const tax=withholding(gross, mode, dep);
+        const tax=withholding(gross,mode,dep);
         const net=gross-tax;
-        html+=payRow(min,base,inc,gross,tax,net,fmtMonth(key));
-        const g=grand[key]||(grand[key]={min:0,base:0,inc:0,gross:0,tax:0,net:0});
+        block.querySelector(".m-hours").textContent=hmText(min);
+        block.querySelector(".m-gross").textContent=yen(gross);
+        block.querySelector(".m-tax").textContent=tax?"−"+yen(tax):"¥0";
+        block.querySelector(".m-net").textContent=yen(net);
+        const g=grand[ym]||(grand[ym]={min:0,base:0,inc:0,gross:0,tax:0,net:0});
         g.min+=min;g.base+=base;g.inc+=inc;g.gross+=gross;g.tax+=tax;g.net+=net;
       });
-      tb.innerHTML=html;
     });
-    const gb=document.getElementById("grandBody");
     const gk=Object.keys(grand).sort();
-    gb.innerHTML = gk.length
-      ? gk.map(k=>{const g=grand[k];return payRow(g.min,g.base,g.inc,g.gross,g.tax,g.net,fmtMonth(k));}).join("")
-      : `<tr><td class="empty" colspan="7">データがありません</td></tr>`;
+    document.getElementById("grandBody").innerHTML = gk.length
+      ? gk.map(k=>{const g=grand[k];return `<tr><td>${fmtYM(k)}</td><td>${hmText(g.min)}</td><td>${yen(g.base)}</td><td class="inc">${yen(g.inc)}</td><td>${yen(g.gross)}</td><td>${g.tax?"−"+yen(g.tax):"¥0"}</td><td>${yen(g.net)}</td></tr>`;}).join("")
+      : `<tr><td class="empty" colspan="7">シフトを入力してください</td></tr>`;
     save();
   }
 
-  // ---- 自動保存（localStorage） ----
-  const STORE_KEY = "baitoKyuyoSim.v1";
+  // ---- 保存 ----
+  const STORE_KEY="baitoKyuyoSim.v2";
+  let restoring=false;
   function serialize(){
     const staff=[];
     pages.querySelectorAll('.page[data-id^="s"]').forEach(page=>{
-      const shifts=[];
-      page.querySelectorAll('.shifts tr').forEach(tr=>{
-        shifts.push({
-          date: tr.querySelector('.dateInp').value,
-          start: tr.querySelector('.s').value,
-          end: tr.querySelector('.e').value,
-          brk: tr.querySelector('.b').value
+      const months=[];
+      page.querySelectorAll(".monthBlock").forEach(block=>{
+        const days={};
+        block.querySelectorAll(".dayrow").forEach(tr=>{
+          const i=tr.querySelector(".din").value,o=tr.querySelector(".dout").value,b=tr.querySelector(".dbrk").value;
+          if(i||o) days[tr.dataset.day]={i,o,b};
         });
+        months.push({ym:block.dataset.ym,days});
       });
-      staff.push({
-        name: page.querySelector('.nameInp').value,
-        wage: page.querySelector('.wage').value,
-        mode: page.dataset.mode,
-        dep: page.querySelector('.dep').value,
-        pt: page.querySelector('.pt').value,
-        shifts
-      });
+      staff.push({name:page.querySelector(".nameInp").value,wage:page.querySelector(".wage").value,
+        mode:page.dataset.mode,dep:page.querySelector(".dep").value,pt:page.querySelector(".pt").value,months});
     });
-    return {staff, active:(pages.querySelector('.page.active')||{}).dataset ? pages.querySelector('.page.active').dataset.id : null};
+    const active=pages.querySelector(".page.active");
+    return {year:yearInput.value,active:active?active.dataset.id:null,staff};
   }
-  let restoring=false;
-  function save(){ if(restoring) return; try{ localStorage.setItem(STORE_KEY, JSON.stringify(serialize())); }catch(e){} }
-  function load(){ try{ const r=localStorage.getItem(STORE_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
+  function save(){ if(restoring)return; try{localStorage.setItem(STORE_KEY,JSON.stringify(serialize()));}catch(e){} }
+  function load(){ try{const r=localStorage.getItem(STORE_KEY);return r?JSON.parse(r):null;}catch(e){return null;} }
 
-  // events
-  tabsEl.addEventListener("click", e=>{
-    const t=e.target.closest(".tab"); if(!t) return;
-    if(t.dataset.id==="__add"){ createStaffAndShow(); return; }
-    showPage(t.dataset.id);
-  });
-  pages.addEventListener("input", e=>{
-    if(e.target.classList.contains("nameInp")) renderTabs();
-    calc();
-  });
-  pages.addEventListener("click", e=>{
-    const page=e.target.closest(".page");
-    if(e.target.classList.contains("addShift")) addShift(page);
-    else if(e.target.classList.contains("delShift")){
-      const tbody=e.target.closest(".shifts");
-      e.target.closest("tr").remove();
-      if(!tbody.children.length) addShift(page);
+  // ---- events ----
+  tabsEl.addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t)return;
+    if(t.dataset.id==="__add"){ createStaff(); return; } showPage(t.dataset.id); });
+  pages.addEventListener("input",e=>{ if(e.target.classList.contains("nameInp")) renderTabs(); calc(); });
+  pages.addEventListener("click",e=>{
+    const page=e.target.closest(".page"); if(!page)return;
+    if(e.target.classList.contains("addMonthBtn")){
+      const m=+page.querySelector(".monthSel").value;
+      const y=+yearInput.value||2026;
+      const blk=addMonth(page,y,m);
+      if(!blk) alert(`${y}年${m}月 はすでに追加されています。`);
       calc();
+    } else if(e.target.classList.contains("delMonth")){
+      if(confirm("この月の入力を削除します。よろしいですか？")){ e.target.closest(".monthBlock").remove(); calc(); }
     } else if(e.target.classList.contains("delStaff")){
-      const wasActive=page.classList.contains("active");
-      page.remove();
-      renderTabs();
-      if(wasActive){
-        const first=pages.querySelector('.page[data-id^="s"]');
-        showPage(first?first.dataset.id:"all");
-      } else calc();
-      if(!pages.querySelector('.page[data-id^="s"]')) createStaffAndShow();
+      const wasActive=page.classList.contains("active"); page.remove(); renderTabs();
+      if(!pages.querySelector('.page[data-id^="s"]')){ createStaff(); return; }
+      if(wasActive){ showPage(pages.querySelector('.page[data-id^="s"]').dataset.id); } else calc();
     } else if(e.target.matches(".seg button")){
       page.dataset.mode=e.target.dataset.k;
-      page.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on", b===e.target));
-      page.querySelector(".depField").style.opacity = e.target.dataset.k==="kou"?1:.4;
-      calc();
+      page.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on",b===e.target));
+      page.querySelector(".depField").style.opacity=e.target.dataset.k==="kou"?1:.4; calc();
     }
   });
-  document.getElementById("addStaff").addEventListener("click", createStaffAndShow);
+  yearInput.addEventListener("input",calc);
+  document.getElementById("addStaff").addEventListener("click",createStaff);
+  document.getElementById("resetBtn").addEventListener("click",()=>{
+    if(confirm("保存した入力内容をすべて消去して初期状態に戻します。よろしいですか？")){
+      try{localStorage.removeItem(STORE_KEY);}catch(e){} location.reload();
+    }
+  });
 
-  function createStaffAndShow(){
-    const p=addStaff("スタッフ"+String.fromCharCode(64+seq+1), 1300, "kou", 0, 0);
-    addShift(p);
-    renderTabs();
-    showPage(p.dataset.id);
+  function createStaff(){
+    const p=staffPage("スタッフ"+String.fromCharCode(64+seq+1),1300,"kou",0,0);
+    const y=+yearInput.value||2026;
+    addMonth(p,y,(new Date().getMonth()+1));
+    renderTabs(); showPage(p.dataset.id);
   }
 
+  // ---- 初期化：保存があれば復元、なければデモ ----
   function buildDemo(){
-    const a=addStaff("スタッフA",1300,"kou",0,3);
-    addShift(a,"2026-07-01","10:00","17:00",45);
-    addShift(a,"2026-07-15","10:00","16:00",45);
-    addShift(a,"2026-08-03","10:00","19:00",60);
-    const b=addStaff("スタッフB",1400,"otsu",0,5);
-    addShift(b,"2026-07-05","09:30","18:30",60);
-    addShift(b,"2026-08-10","13:00","22:00",45);
+    const a=staffPage("スタッフA",1300,"kou",0,3);
+    addMonth(a,2026,7,{1:{i:"10:00",o:"17:00",b:"45"},15:{i:"10:00",o:"16:00",b:"45"}});
+    addMonth(a,2026,8);
+    addMonth(a,2026,9);
     return a.dataset.id;
   }
-
-  // 保存データがあれば復元、なければデモを表示
   restoring=true;
   let firstId=null;
   const saved=load();
   if(saved && Array.isArray(saved.staff) && saved.staff.length){
+    if(saved.year) yearInput.value=saved.year;
     saved.staff.forEach(s=>{
-      const p=addStaff(s.name||"", (+s.wage||1300), (s.mode||"kou"), (+s.dep||0), (+s.pt||0));
+      const p=staffPage(s.name||"",(+s.wage||1300),(s.mode||"kou"),(+s.dep||0),(+s.pt||0));
       if(!firstId) firstId=p.dataset.id;
-      const shifts=(s.shifts&&s.shifts.length)?s.shifts:[{}];
-      shifts.forEach(sh=>addShift(p, sh.date||"", sh.start||"", sh.end||"", (sh.brk!==undefined&&sh.brk!=="")?sh.brk:45));
+      (s.months||[]).forEach(mo=>{ const [y,m]=mo.ym.split("-"); addMonth(p,+y,+m,mo.days||{}); });
     });
-  } else {
-    firstId=buildDemo();
-  }
+  } else { firstId=buildDemo(); }
   restoring=false;
   renderTabs();
   showPage((saved&&saved.active&&pages.querySelector(`.page[data-id="${saved.active}"]`))?saved.active:firstId);
-  save();
-
-  // データ消去
-  document.getElementById("resetBtn").addEventListener("click", ()=>{
-    if(confirm("保存した入力内容をすべて消去して初期状態に戻します。よろしいですか？")){
-      try{ localStorage.removeItem(STORE_KEY); }catch(e){}
-      location.reload();
-    }
-  });
 </script>
 </body>
 </html>
